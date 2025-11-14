@@ -8,7 +8,7 @@ export default function HomePage() {
         <img src={yayJpg} width="388" />
       </p>
       <p>
-        To get started, edit <code>pages/index.tsx</code> and save to reload.
+        To get started, edit <code>pages/index.tsx</code>asa and save to reload.
       </p>
     </div>
   );
