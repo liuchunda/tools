@@ -6,4 +6,5 @@ export default defineConfig({
     { path: "/docs", component: "docs" },
   ],
   npmClient: 'pnpm',
+  publicPath: process.env.NODE_ENV === 'production' ? './' : '/',
 });
