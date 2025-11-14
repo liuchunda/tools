@@ -1,12 +1,14 @@
 {
   "private": true,
+  "homepage": "https://liuchunda.github.io/tools",
   "author": "刘春达 <liuchunda@xiaomi.com>",
   "scripts": {
     "dev": "umi dev",
     "build": "umi build",
     "postinstall": "umi setup",
     "setup": "umi setup",
-    "start": "npm run dev"
+    "start": "npm run dev",
+    "deploy" : "gh-pages -d dist"
   },
   "dependencies": {
     "umi": "^4.5.3"
@@ -14,6 +16,7 @@
   "devDependencies": {
     "@types/react": "^18.0.33",
     "@types/react-dom": "^18.0.11",
+    "gh-pages": "^6.3.0",
     "typescript": "^5.0.3"
   }
 }
