@@ -6,10 +6,13 @@ export default function Layout() {
     <div className={styles.navs}>
       <ul>
         <li>
-          <Link to="/">Hom123e</Link>
+          <Link to="/">Hom123123e</Link>
         </li>
         <li>
           <Link to="/docs">Doc123123s</Link>
+        </li>
+        <li>
+          <Link to="/docs">111</Link>
         </li>
       </ul>
       <Outlet />
