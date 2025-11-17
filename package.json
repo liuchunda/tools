@@ -8,7 +8,7 @@
     "postinstall": "umi setup",
     "setup": "umi setup",
     "start": "npm run dev",
-    "deploy" : "gh-pages -d dist"
+    "deploy" : "umi build && gh-pages -d dist"
   },
   "dependencies": {
     "umi": "^4.5.3"
