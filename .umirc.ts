@@ -10,6 +10,6 @@ export default defineConfig({
   },
   hash: true,
   npmClient: 'pnpm',
-  publicPath: process.env.NODE_ENV === 'production' ? '/tools/' : '/',
+  publicPath: process.env.NODE_ENV === 'production' ? '/' : '/',
   outputPath: 'dist',
 });
