@@ -8,7 +8,7 @@ export default function HomePage() {
         <img src={yayJpg} width="388" />
       </p>
       <p>
-        我是
+        我是123123
       </p>
     </div>
   );
