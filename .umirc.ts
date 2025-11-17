@@ -12,4 +12,5 @@ export default defineConfig({
   npmClient: 'pnpm',
   publicPath: process.env.NODE_ENV === 'production' ? '/' : '/',
   outputPath: 'dist',
+  favicons: ['/favicon.png'],
 });
