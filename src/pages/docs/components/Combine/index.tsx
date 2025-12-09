@@ -1,11 +1,16 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import { DndProvider, useDrag, useDrop } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { Upload, Button, Card, message, Space, Typography } from 'antd';
 import { UploadOutlined, DeleteOutlined, DownloadOutlined, DragOutlined } from '@ant-design/icons';
 import { PDFDocument } from 'pdf-lib';
+import * as pdfjsLib from 'pdfjs-dist';
 import type { UploadFile } from 'antd/es/upload/interface';
 import './index.less';
+
+// 设置 pdf.js worker - 使用本地worker文件（已复制到public目录）
+// 这样就不依赖外部CDN，避免404错误
+pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.mjs';
 
 const { Title } = Typography;
 
@@ -90,21 +95,45 @@ const DraggablePDFItem: React.FC<DraggablePDFItemProps> = ({ item, index, moveIt
 const Combine: React.FC = () => {
   const [pdfFiles, setPdfFiles] = useState<PDFFileItem[]>([]);
   const [loading, setLoading] = useState(false);
+  // 使用 ref 跟踪已处理的文件，避免重复添加
+  const processedFilesRef = useRef<Set<string>>(new Set());
 
   // 生成 PDF 缩略图
   const generateThumbnail = async (file: File): Promise<string> => {
     try {
       const arrayBuffer = await file.arrayBuffer();
-      const pdfDoc = await PDFDocument.load(arrayBuffer);
-      const pages = pdfDoc.getPages();
+      // 使用 pdf.js 加载 PDF 文档
+      const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
+      const pdf = await loadingTask.promise;
       
-      if (pages.length > 0) {
-        // 使用 canvas 生成第一页的缩略图
-        // 注意：这里简化处理，实际可以使用 pdf.js 或其他库生成更准确的缩略图
-        // 由于 pdf-lib 不直接支持渲染，这里返回一个占位符
+      // 获取第一页
+      const page = await pdf.getPage(1);
+      
+      // 设置缩放比例，缩略图尺寸
+      const scale = 1.5;
+      const viewport = page.getViewport({ scale });
+      
+      // 创建 canvas
+      const canvas = document.createElement('canvas');
+      const context = canvas.getContext('2d');
+      if (!context) {
         return '';
       }
-      return '';
+      
+      canvas.height = viewport.height;
+      canvas.width = viewport.width;
+      
+      // 渲染 PDF 页面到 canvas
+      const renderContext = {
+        canvasContext: context,
+        viewport: viewport,
+        canvas: canvas,
+      };
+      
+      await page.render(renderContext).promise;
+      
+      // 将 canvas 转换为 base64 图片
+      return canvas.toDataURL('image/png');
     } catch (error) {
       console.error('生成缩略图失败:', error);
       return '';
@@ -140,26 +169,61 @@ const Combine: React.FC = () => {
     if (newFiles.length > 0) {
       setLoading(true);
       try {
-        const newPDFItems: PDFFileItem[] = await Promise.all(
-          newFiles.map(async (file) => {
-            const pages = await getPDFPages(file);
-            const thumbnail = await generateThumbnail(file);
-            return {
-              id: `${Date.now()}-${Math.random()}`,
-              file,
-              thumbnail,
-              name: file.name,
-              pages,
-            };
-          })
-        );
+        // 使用函数式更新获取当前已存在文件的唯一标识（文件名+大小）
+        setPdfFiles((prev) => {
+          const existingKeys = new Set(
+            prev.map(item => `${item.name}-${item.file.size}`)
+          );
 
-        setPdfFiles((prev) => [...prev, ...newPDFItems]);
-        message.success(`成功添加 ${newPDFItems.length} 个 PDF 文件`);
+          // 过滤掉已存在的文件和已处理过的文件
+          const uniqueNewFiles = newFiles.filter(file => {
+            const key = `${file.name}-${file.size}`;
+            // 检查是否已存在于列表中或已处理过
+            if (existingKeys.has(key) || processedFilesRef.current.has(key)) {
+              return false;
+            }
+            // 标记为已处理
+            processedFilesRef.current.add(key);
+            return true;
+          });
+
+          if (uniqueNewFiles.length === 0) {
+            setLoading(false);
+            return prev;
+          }
+
+          // 异步处理新文件
+          (async () => {
+            try {
+              const newPDFItems: PDFFileItem[] = await Promise.all(
+                uniqueNewFiles.map(async (file) => {
+                  const pages = await getPDFPages(file);
+                  const thumbnail = await generateThumbnail(file);
+                  return {
+                    id: `${Date.now()}-${Math.random()}`,
+                    file,
+                    thumbnail,
+                    name: file.name,
+                    pages,
+                  };
+                })
+              );
+
+              setPdfFiles((currentPrev) => [...currentPrev, ...newPDFItems]);
+              message.success(`成功添加 ${newPDFItems.length} 个 PDF 文件`);
+            } catch (error) {
+              message.error('处理 PDF 文件失败');
+              console.error(error);
+            } finally {
+              setLoading(false);
+            }
+          })();
+
+          return prev;
+        });
       } catch (error) {
         message.error('处理 PDF 文件失败');
         console.error(error);
-      } finally {
         setLoading(false);
       }
     }
@@ -177,7 +241,15 @@ const Combine: React.FC = () => {
 
   // 删除项目
   const removeItem = useCallback((id: string) => {
-    setPdfFiles((prev) => prev.filter((item) => item.id !== id));
+    setPdfFiles((prev) => {
+      const itemToRemove = prev.find((item) => item.id === id);
+      if (itemToRemove) {
+        // 从 processedFilesRef 中移除，允许重新上传
+        const key = `${itemToRemove.name}-${itemToRemove.file.size}`;
+        processedFilesRef.current.delete(key);
+      }
+      return prev.filter((item) => item.id !== id);
+    });
     message.success('已删除');
   }, []);
 
