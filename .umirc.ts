@@ -1,5 +1,6 @@
 import { defineConfig } from "umi";
 export default defineConfig({
+  esbuildMinifyIIFE: true,
   routes: [
     { path: "/", component: "@/pages/index" ,redirect: "/docs"},
     { path: "/docs", component: "@/pages/docs" },
