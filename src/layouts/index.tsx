@@ -13,9 +13,9 @@ export default function Layout() {
         {/* <li>
           <Link to="/" onClick={handleHomeClick}>主页</Link>
         </li> */}
-        <li>
+        {/* <li>
           <Link to="/docs">PDF</Link>
-        </li>
+        </li> */}
       </ul>
       <Outlet />
     </div>
