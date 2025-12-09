@@ -1,9 +1,8 @@
 import { defineConfig } from "umi";
-
 export default defineConfig({
   routes: [
-    { path: "/", component: "index" },
-    { path: "/docs", component: "docs" },
+    { path: "/", component: "@/pages/index" ,redirect: "/docs"},
+    { path: "/docs", component: "@/pages/docs" },
   ],
   history: {
     type: 'hash',

@@ -8,9 +8,14 @@
     "postinstall": "umi setup",
     "setup": "umi setup",
     "start": "npm run dev",
-    "deploy" : "umi build && gh-pages -d dist"
+    "deploy": "umi build && gh-pages -d dist"
   },
   "dependencies": {
+    "@ant-design/icons": "^6.1.0",
+    "antd": "^6.1.0",
+    "pdf-lib": "^1.17.1",
+    "react-dnd": "^16.0.1",
+    "react-dnd-html5-backend": "^16.0.1",
     "umi": "^4.5.3"
   },
   "devDependencies": {

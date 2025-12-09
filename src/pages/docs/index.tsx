@@ -1,7 +1,8 @@
+import Combine from './components/Combine/index';
 const DocsPage = () => {
   return (
     <div>
-      <p>This is umi docs.</p>
+      <Combine />
     </div>
   );
 };
