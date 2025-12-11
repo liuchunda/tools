@@ -1,5 +1,5 @@
 import { useDrag, useDrop } from 'react-dnd';
-import { Card, Button } from 'antd';
+import { Card, Button, Spin } from 'antd';
 import { DeleteOutlined } from '@ant-design/icons';
 import type { DraggablePDFItemProps } from '../type';
 import styles from './index.less';
@@ -10,6 +10,7 @@ const DraggablePDFItem: React.FC<DraggablePDFItemProps> = ({ item, index, moveIt
     collect: (monitor) => ({
       isDragging: monitor.isDragging(),
     }),
+    canDrag: !item.loading, 
   });
 
   const [, drop] = useDrop({
@@ -28,21 +29,27 @@ const DraggablePDFItem: React.FC<DraggablePDFItemProps> = ({ item, index, moveIt
     <div ref={(node) => drag(drop(node))} style={{ opacity }} className={styles.pdfItemWrapper}>
       <Card
         className={styles.pdfItemCard}
-        hoverable
+        hoverable={!item.loading} 
       >
-        <Button
-          type="text"
-          danger
-          size="small"
-          className={styles.deleteButton}
-          icon={<DeleteOutlined />}
-          onClick={() => removeItem(item.id)}
-          key="delete"
-        >
-        </Button>
+        {!item.loading && ( 
+          <Button
+            type="text"
+            danger
+            size="small"
+            className={styles.deleteButton}
+            icon={<DeleteOutlined />}
+            onClick={() => removeItem(item.id)}
+            key="delete"
+          >
+          </Button>
+        )}
         <div className={styles.pdfItemContent}>
           <div className={styles.pdfThumbnail}>
-            {item.thumbnail ? (
+            {item.loading ? ( 
+              <div className={styles.pdfPlaceholder}>
+                <Spin size="large" />
+              </div>
+            ) : item.thumbnail ? (
               <img src={item.thumbnail} alt={item.name} />
             ) : (
               <div className={styles.pdfPlaceholder}>
@@ -59,6 +66,6 @@ const DraggablePDFItem: React.FC<DraggablePDFItemProps> = ({ item, index, moveIt
         </div>
       </Card>
     </div>
-  );
+  ); 
 };
 export default DraggablePDFItem;

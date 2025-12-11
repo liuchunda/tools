@@ -92,7 +92,6 @@ const Combine: React.FC = () => {
         if (newFiles.length > 0) {
             setLoading(true);
             try {
-                // 使用函数式更新获取当前已存在文件的唯一标识（文件名+大小）
                 setPdfFiles((prev) => {
                     const existingKeys = new Set(
                         prev.map(item => `${item.name}-${item.file.size}`)
@@ -115,34 +114,68 @@ const Combine: React.FC = () => {
                         return prev;
                     }
 
-                    // 异步处理新文件
-                    (async () => {
+                    const placeholderItems: PDFFileItem[] = uniqueNewFiles.map((file) => ({
+                        id: `${Date.now()}-${Math.random()}-${file.name}`,
+                        file,
+                        name: file.name,
+                        pages: 0,
+                        loading: true, // 标记为加载中
+                    }));
+
+                    // 先添加占位符，立即显示
+                    const updatedFiles = [...prev, ...placeholderItems];
+
+                    // 使用 Promise.allSettled 跟踪所有文件的处理状态
+                    const processPromises = uniqueNewFiles.map(async (file, index) => {
+                        const placeholderId = placeholderItems[index].id;
                         try {
-                            const newPDFItems: PDFFileItem[] = await Promise.all(
-                                uniqueNewFiles.map(async (file) => {
-                                    const pages = await getPDFPages(file);
-                                    const thumbnail = await generateThumbnail(file);
-                                    return {
-                                        id: `${Date.now()}-${Math.random()}`,
-                                        file,
-                                        thumbnail,
-                                        name: file.name,
-                                        pages,
-                                    };
-                                })
-                            );
-
-                            setPdfFiles((currentPrev) => [...currentPrev, ...newPDFItems]);
-                            message.success(`成功添加 ${newPDFItems.length} 个 PDF 文件`);
+                            const pages = await getPDFPages(file);
+                            const thumbnail = await generateThumbnail(file);
+                            
+                            // 更新对应的占位符项
+                            setPdfFiles((currentPrev) => {
+                                return currentPrev.map((item) => {
+                                    if (item.id === placeholderId) {
+                                        return {
+                                            ...item,
+                                            thumbnail,
+                                            pages,
+                                            loading: false, // 标记为加载完成
+                                        };
+                                    }
+                                    return item;
+                                });
+                            });
+                            return { success: true, file };
                         } catch (error) {
-                            message.error('处理 PDF 文件失败');
-                            console.error(error);
-                        } finally {
-                            setLoading(false);
+                            console.error(`处理文件 ${file.name} 失败:`, error);
+                            // 如果处理失败，移除占位符项
+                            setPdfFiles((currentPrev) => {
+                                const itemToRemove = currentPrev.find(item => item.id === placeholderId);
+                                if (itemToRemove) {
+                                    const key = `${itemToRemove.name}-${itemToRemove.file.size}`;
+                                    processedFilesRef.current.delete(key);
+                                }
+                                return currentPrev.filter(item => item.id !== placeholderId);
+                            });
+                            message.error(`处理文件 ${file.name} 失败`);
+                            return { success: false, file };
                         }
-                    })();
+                    });
 
-                    return prev;
+                    Promise.allSettled(processPromises).then(() => {
+                        setLoading(false);
+                        // 统计成功处理的文件数量
+                        setPdfFiles((currentPrev) => {
+                            const successCount = currentPrev.filter(item => !item.loading && item.pages > 0).length;
+                            if (successCount > 0) {
+                                message.success(`成功添加 ${successCount} 个 PDF 文件`);
+                            }
+                            return currentPrev;
+                        });
+                    }); 
+
+                    return updatedFiles; 
                 });
             } catch (error) {
                 message.error('处理 PDF 文件失败');
@@ -150,7 +183,7 @@ const Combine: React.FC = () => {
                 setLoading(false);
             }
         }
-    }, []);
+    }, []); 
 
     // 移动项目
     const moveItem = useCallback((dragIndex: number, hoverIndex: number) => {
@@ -173,7 +206,6 @@ const Combine: React.FC = () => {
             }
             return prev.filter((item) => item.id !== id);
         });
-        message.success('已删除');
     }, []);
 
     // 合并并下载 PDF

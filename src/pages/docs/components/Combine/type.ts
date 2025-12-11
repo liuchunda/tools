@@ -4,6 +4,7 @@ export interface PDFFileItem {
     thumbnail?: string;
     name: string;
     pages: number;
+    loading?: boolean; 
 }
 
 export interface DraggablePDFItemProps {
